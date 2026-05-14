@@ -1,0 +1,39 @@
+{
+  "name": "claude-rtl-fix",
+  "displayName": "Claude Code RTL Fix",
+  "description": "תמיכת RTL חזקה לעברית, ערבית ופרסית בתוסף Claude Code ל-VS Code",
+  "version": "1.1.0",
+  "publisher": "my-rtl-fix",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeRtl.enable",
+        "title": "Claude RTL: הפעל RTL"
+      },
+      {
+        "command": "claudeRtl.disable",
+        "title": "Claude RTL: כבה RTL"
+      },
+      {
+        "command": "claudeRtl.status",
+        "title": "Claude RTL: בדוק סטטוס"
+      }
+    ],
+    "configuration": {
+      "title": "Claude RTL Fix",
+      "properties": {
+        "claudeRtl.autoEnable": {
+          "type": "boolean",
+          "default": false,
+          "description": "הפעל RTL אוטומטית בכל פתיחת VS Code"
+        }
+      }
+    }
+  }
+}
