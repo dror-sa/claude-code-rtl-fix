@@ -260,6 +260,34 @@ const PATCH_MARKER = "/* CLAUDE_RTL_FIX_START */";
 const PATCH_END_MARKER = "/* CLAUDE_RTL_FIX_END */";
 const BACKUP_SUFFIX = ".rtl-backup";
 
+// ---------------------------------------------------------------------------
+// תיקון תצוגת ה-PLAN (Claude's Plan preview)
+// ---------------------------------------------------------------------------
+// כש-Claude מציג תוכנית, היא נפתחת ב-webview panel נפרד ("claudePlanPreview")
+// שה-HTML שלו בנוי בתוך extension.js (קובץ ה-host) של Claude Code — לא ב-webview
+// של הצ'אט. לכן הזרקת ה-RTL לצ'אט לא משפיעה עליו. כאן אנחנו מתקנים את התבנית הזו:
+// מזריקים <style> + dir="rtl" ל-container שמקבל את ה-markdown של התוכנית.
+//
+// ה-anchor `<div id="content"></div>` ייחודי וקיים בתבנית תצוגת התוכנית.
+const HOST_ANCHOR = '<div id="content"></div>';
+const HOST_MARKER = "claude-rtl-plan-style"; // מזהה idempotency
+// CSS בלי backticks ובלי ${ } — מוזרק לתוך template literal של Claude Code.
+const PLAN_RTL_CSS = [
+  "/* CLAUDE_RTL_FIX */",
+  "#content{direction:rtl;text-align:right;}",
+  "#content h1,#content h2,#content h3,#content h4,#content h5,#content h6,",
+  "#content p,#content li,#content blockquote,#content dd,#content dt,",
+  "#content summary,#content figcaption{text-align:right;}",
+  "#content ul,#content ol{padding-right:32px;padding-left:0;}",
+  "#content th,#content td{text-align:right;}",
+  "/* קוד/טרמינל/נתיבים נשארים תמיד LTR */",
+  "#content pre,#content code,#content kbd,#content samp{direction:ltr;unicode-bidi:isolate;}",
+  "#content pre,#content pre code{text-align:left;}",
+].join("\n");
+const HOST_PATCH_HTML =
+  '<style id="' + HOST_MARKER + '">\n' + PLAN_RTL_CSS + '\n</style>' +
+  '<div id="content" dir="rtl"></div>';
+
 // מאתר את כל ההתקנות של Claude Code
 function findClaudeCodeExtensions() {
   const extDirs = [];
@@ -322,6 +350,61 @@ function findWebviewBundle(extPath) {
   } catch (_) {}
 
   return candidates.find((p) => fs.existsSync(p)) || null;
+}
+
+// מאתר את קובץ ה-host (extension.js) שמכיל את תבנית תצוגת ה-PLAN
+function findHostBundle(extPath) {
+  const candidate = path.join(extPath, "extension.js");
+  return fs.existsSync(candidate) ? candidate : null;
+}
+
+function isHostPatched(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8").includes(HOST_MARKER);
+  } catch (_) {
+    return false;
+  }
+}
+
+// מחיל RTL על תבנית תצוגת ה-PLAN שב-host bundle
+function applyHostPatch(filePath) {
+  try {
+    let content = fs.readFileSync(filePath, "utf8");
+    if (content.includes(HOST_MARKER)) {
+      return { ok: true, msg: "כבר מותקן", changed: false };
+    }
+    if (!content.includes(HOST_ANCHOR)) {
+      // גרסת Claude Code לא נתמכת / שונתה התבנית — מדלגים בשקט על ה-PLAN
+      return { ok: true, msg: "anchor של תצוגת PLAN לא נמצא — דילגתי", changed: false };
+    }
+    const backupPath = filePath + BACKUP_SUFFIX;
+    if (!fs.existsSync(backupPath)) {
+      fs.copyFileSync(filePath, backupPath);
+    }
+    content = content.replace(HOST_ANCHOR, HOST_PATCH_HTML);
+    fs.writeFileSync(filePath, content, "utf8");
+    return { ok: true, msg: "תצוגת PLAN קיבלה RTL", changed: true };
+  } catch (err) {
+    return { ok: false, msg: err.message, changed: false };
+  }
+}
+
+function removeHostPatch(filePath) {
+  try {
+    const backupPath = filePath + BACKUP_SUFFIX;
+    if (fs.existsSync(backupPath)) {
+      fs.copyFileSync(backupPath, filePath);
+      return { ok: true, msg: "שוחזר מגיבוי" };
+    }
+    let content = fs.readFileSync(filePath, "utf8");
+    if (content.includes(HOST_PATCH_HTML)) {
+      content = content.replace(HOST_PATCH_HTML, HOST_ANCHOR);
+      fs.writeFileSync(filePath, content, "utf8");
+    }
+    return { ok: true, msg: "הוסר" };
+  } catch (err) {
+    return { ok: false, msg: err.message };
+  }
 }
 
 function isPatched(filePath) {
@@ -421,6 +504,13 @@ async function cmdEnable() {
     const result = applyPatch(bundle);
     if (result.ok) applied++;
     else errors.push(`${path.basename(extPath)}: ${result.msg}`);
+
+    // תיקון תצוגת ה-PLAN (host bundle נפרד)
+    const host = findHostBundle(extPath);
+    if (host) {
+      const hostResult = applyHostPatch(host);
+      if (!hostResult.ok) errors.push(`PLAN: ${hostResult.msg}`);
+    }
   }
 
   if (errors.length > 0) {
@@ -429,7 +519,7 @@ async function cmdEnable() {
 
   if (applied > 0) {
     const reload = await vscode.window.showInformationMessage(
-      `✅ RTL v1.1 הופעל על ${applied} התקנה/ות. נדרשת טעינה מחדש.`,
+      `✅ RTL v1.2 הופעל על ${applied} התקנה/ות (צ'אט + תצוגת PLAN). נדרשת טעינה מחדש.`,
       "טען מחדש"
     );
     if (reload === "טען מחדש") {
@@ -452,9 +542,12 @@ async function cmdDisable() {
   let removed = 0;
   for (const extPath of extensions) {
     const bundle = findWebviewBundle(extPath);
-    if (!bundle) continue;
-    const result = removePatch(bundle);
-    if (result.ok) removed++;
+    if (bundle) {
+      const result = removePatch(bundle);
+      if (result.ok) removed++;
+    }
+    const host = findHostBundle(extPath);
+    if (host) removeHostPatch(host);
   }
 
   const reload = await vscode.window.showInformationMessage(
@@ -480,8 +573,11 @@ function cmdStatus() {
     if (!bundle) return `• ${path.basename(extPath)}: bundle לא נמצא`;
     const patched = isPatched(bundle);
     const old = isOldPatchVersion(bundle);
-    if (old) return `• ${path.basename(extPath)}: ⚠️ גרסה ישנה (1.0) - מומלץ להפעיל שוב לעדכון ל-1.1`;
-    return `• ${path.basename(extPath)}: ${patched ? "✅ RTL v1.1 פעיל" : "⭕ RTL לא פעיל"}`;
+    const host = findHostBundle(extPath);
+    const planPatched = host && isHostPatched(host);
+    const planStr = planPatched ? "PLAN ✅" : "PLAN ⭕";
+    if (old) return `• ${path.basename(extPath)}: ⚠️ גרסה ישנה - מומלץ להפעיל שוב לעדכון`;
+    return `• ${path.basename(extPath)}: ${patched ? "✅ צ'אט RTL פעיל" : "⭕ צ'אט RTL לא פעיל"} · ${planStr}`;
   });
 
   vscode.window.showInformationMessage(

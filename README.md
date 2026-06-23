@@ -6,7 +6,7 @@
 
 </div>
 
-> **Version:** `1.1.0`
+> **Version:** `1.2.0`
 > **Engine:** VS Code ≥ `1.80.0`
 > **Supports:** VS Code · Cursor · Windsurf · VS Code Insiders
 
@@ -34,7 +34,7 @@
 
 ## התקנה
 
-1. הורד את [`claude-rtl-fix-1.1.0.vsix`](https://github.com/dror-sa/claude-code-rtl-fix/releases/latest) מדף ה-Releases.
+1. הורד את [`claude-rtl-fix-1.2.0.vsix`](https://github.com/dror-sa/claude-code-rtl-fix/releases/latest) מדף ה-Releases.
 2. ב-VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...` → בחר את הקובץ.
 3. הפעל: `Ctrl+Shift+P` → `Claude RTL: הפעל RTL`.
 4. אשר טעינה מחדש של החלון כשמתבקש.
@@ -42,7 +42,7 @@
 ### דרך CLI
 
 ```bash
-code --install-extension claude-rtl-fix-1.1.0.vsix
+code --install-extension claude-rtl-fix-1.2.0.vsix
 ```
 
 (להחלפה ב-`cursor` / `windsurf` בהתאם)
@@ -78,6 +78,11 @@ code --install-extension claude-rtl-fix-1.1.0.vsix
 | רשימות ופסקאות | תוצאות כלים (`tool_use`) |
 | שדות קלט עם טקסט עברי | diffs ו-syntax highlighting |
 | כותרות, ציטוטים | Monaco editor |
+| **תצוגת PLAN** (Claude's Plan) | נתיבי קבצים בתוך התוכנית |
+
+> **חדש ב-1.2.0:** תצוגת ה-PLAN (`Claude's Plan`) נפתחת ב-panel נפרד שה-HTML שלו
+> בנוי בתוך `extension.js` של Claude Code (ולא ב-webview של הצ'אט). גרסה זו מזריקה
+> RTL גם לתבנית הזו — כך שהתוכנית מיושרת לימין, ובלוקי קוד/נתיבים נשארים LTR.
 
 ## אחרי עדכון של Claude Code
 
