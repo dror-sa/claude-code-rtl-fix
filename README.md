@@ -102,6 +102,14 @@ Ctrl+Shift+P → Claude RTL: כבה RTL
 
 הקבצים המקוריים משוחזרים מהגיבוי האוטומטי (`*.rtl-backup`) שנשמר בהפעלה הראשונה.
 
+## ניסיוני: מוד ל-Claude Code (גם לטרמינל)
+
+[`mod/rtl-bidi`](mod/rtl-bidi/README.md) הוא אב-טיפוס של mod ל-Claude Code שמסדר עברית וערבית בתמליל בלי לשנות קבצים של Claude Code, ולכן שורד עדכונים. הוא עובד גם ב-CLI בטרמינל, לא רק ב-VS Code.
+
+```
+/plugin install rtl-bidi --marketplace dror-sa/claude-code-rtl-fix
+```
+
 ## פיתוח מקומי
 
 הקוד נמצא ב-`src/`:

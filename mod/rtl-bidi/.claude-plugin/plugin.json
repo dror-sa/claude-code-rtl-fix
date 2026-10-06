@@ -1,0 +1,22 @@
+{
+  "name": "rtl-bidi",
+  "version": "0.1.0",
+  "description": "Draws Hebrew, Arabic and Persian text in Claude Code's transcript in the right order, with code kept left to right",
+  "author": {
+    "name": "dror-sa"
+  },
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "RTL mode",
+      "description": "auto picks per surface and terminal; isolate inserts Unicode bidi controls (for bidi-aware renderers); visual reorders lines for terminals with no bidi support; off disables the mod",
+      "default": "auto",
+      "options": [
+        "auto",
+        "isolate",
+        "visual",
+        "off"
+      ]
+    }
+  }
+}

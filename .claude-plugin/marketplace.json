@@ -1,0 +1,13 @@
+{
+  "name": "claude-code-rtl-fix",
+  "description": "Claude Code mods for right-to-left languages",
+  "owner": {
+    "name": "dror-sa"
+  },
+  "plugins": [
+    {
+      "name": "rtl-bidi",
+      "source": "./mod/rtl-bidi"
+    }
+  ]
+}
