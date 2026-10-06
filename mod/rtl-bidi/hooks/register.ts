@@ -1,6 +1,6 @@
 import type { EngineInterface, Register } from 'claude-code'
 
-import { hasRtl, transformMarkdown, type Mode } from './bidi.ts'
+import { hasRtl, transformMarkdown, type Mode } from './bidi'
 
 type Setting = Mode | 'auto'
 
